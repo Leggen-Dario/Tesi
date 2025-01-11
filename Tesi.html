@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tesi sullo sviluppo del software in cloud attraverso GIT e Ansible</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+            background-color: #f4f4f9;
+            width: 100%;
+        }
+        header {
+            text-align: center;
+            background-color: #ffffff;
+            padding: 20px 0;
+            width: 100%;
+        }
+        header img {
+            max-width: 100%;
+            height: auto;
+        }
+        nav {
+            background-color: #333;
+            overflow: hidden;
+            color: white;
+        }
+        nav a {
+            float: left;
+            display: block;
+            color: white;
+            text-decoration: none;
+            padding: 14px 20px;
+        }
+        nav a:hover {
+            background-color: #575757;
+        }
+        .container {
+            display: flex;
+            width: 100%;
+            margin-top: 20px;
+        }
+        .sidebar {
+            width: 20%;
+            padding: 20px;
+            background-color: #f4f4f4;
+            border-right: 1px solid #ddd;
+            box-sizing: border-box;
+        }
+        .content {
+            width: 80%;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        footer {
+            text-align: center;
+            background-color: #333;
+            color: white;
+            padding: 10px 0;
+            margin-top: 20px;
+        }
+        footer a {
+            color: #00cfff;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <img src="https://www.assopallavolisti.it/images/grafiche-sito/unimercatorum.png" alt="Università Mercatorum">
+    </header>
+
+    <!-- Navbar -->
+    <nav>
+        <a href="https://sito-tesi.azurewebsites.net/Tesi.html">Homepage</a>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <h3>Argomenti</h3>
+            <ul>
+                <li><strong>Creazione VM Ubuntu su Azure</strong></li>
+                <li><strong>Installazione Ansible su VM</strong></li>
+                <li><strong>Creazione App Service con stack runtime PHP 8.3 su Azure</strong></li>
+                <li><strong>Abilitazione FTP su App Service Azure</strong></li>
+                <li><strong>Creazione pipeline Ansible playbook.yml</strong></li>
+                <li><strong>Lanciare pipeline con ansible-playbook playbook.yml</strong></li>
+            </ul>
+        </aside>
+
+        <!-- Content -->
+        <div class="content">
+            <h1>Tesi: Automazione del Deploy con Ansible</h1>
+            
+            <h2>Creazione VM Ubuntu su Azure</h2>
+            <p>
+                La prima fase consiste nel creare una macchina virtuale (VM) con sistema operativo Ubuntu sulla piattaforma Azure. 
+                Questa VM fungerà da ambiente di lavoro per eseguire gli script Ansible e configurare il deploy del sito web.
+            </p>
+
+            <h2>Installazione Ansible su VM</h2>
+            <p>
+                Per installare Ansible sulla VM Ubuntu, eseguire i seguenti comandi:
+            </p>
+            <ul>
+                <li><code>sudo apt update</code>: aggiorna l'elenco dei pacchetti disponibili.</li>
+                <li><code>sudo apt upgrade -y</code>: aggiorna i pacchetti installati.</li>
+                <li><code>sudo apt install software-properties-common</code>: installa i pacchetti necessari per aggiungere il repository di Ansible.</li>
+                <li><code>sudo add-apt-repository ppa:ansible/ansible</code>: aggiunge il repository di Ansible.</li>
+                <li><code>sudo apt update</code>: aggiorna l'elenco dei pacchetti dopo aver aggiunto il repository.</li>
+                <li><code>sudo apt install ansible -y</code>: installa Ansible.</li>
+                <li><code>ansible --version</code>: verifica che Ansible sia installato correttamente.</li>
+            </ul>
+
+            <h2>Creazione App Service con stack runtime PHP 8.3 su Azure</h2>
+            <p>
+                Per creare un App Service su Azure con PHP 8.3, accedere al portale Azure e creare una nuova risorsa App Service, 
+                selezionando il runtime stack PHP 8.3. Questo fornirà l'infrastruttura per ospitare il sito web.
+            </p>
+
+            <h2>Abilitazione FTP su App Service Azure</h2>
+            <p>
+                Dopo aver creato l'App Service, abilitare l'accesso FTP per caricare i file sul server. Questo può essere fatto 
+                abilitando il servizio FTP nel portale di Azure e configurando le credenziali necessarie per l'accesso.
+            </p>
+
+            <h2>Creazione pipeline Ansible playbook.yml</h2>
+            <p>
+                Una volta configurata la VM e l'App Service, si può creare una pipeline Ansible con il file `playbook.yml` 
+                per automatizzare il deploy del sito. Ecco il codice del file `playbook.yml`:
+            </p>
+
+            <pre><code>
+---
+- name: Deploy Tesi.html to Azure App Service
+  hosts: localhost
+  tasks:
+    - name: Ensure curl is installed
+      apt:
+        name: curl
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Upload Tesi.html to Azure App Service via FTPS
+      shell: |
+        curl -T /home/azureuser/deploy-app-service/Tesi.html \
+        --user 'sito-tesi\$sito-tesi:7BLXcPxzqx1eikPkLnaQrGgNQmoDGxgQQZi8a8KGxz3ic8sR2tQowrs9Gjvn' \
+        --ftp-ssl \
+        "ftps://waws-prod-am2-779.ftp.azurewebsites.windows.net/site/wwwroot/Tesi.html"
+      args:
+        executable: /bin/bash
+      register: upload_result
+
+    - name: Show upload result
+      debug:
+        var: upload_result.stderr
+
+    - name: Verify deployment
+      uri:
+        url: "https://sito-tesi.azurewebsites.net/Tesi.html"
+        method: GET
+        return_content: yes
+      register: verify_result
+
+    - name: Display verification output
+      debug:
+        msg: "Verification Result: {{ verify_result.status }} - {{ verify_result.content | truncate(100) }}"
+            </code></pre>
+
+            <h2>Lanciare pipeline con ansible-playbook playbook.yml</h2>
+            <p>
+                Per eseguire la pipeline Ansible e lanciare il deploy, eseguire il comando seguente:
+            </p>
+            <pre><code>ansible-playbook playbook.yml</code></pre>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p>Tesi di Laurea - Automazione del Deploy con Ansible © 2025</p>
+        <p>Contatti: <a href="mailto:email@example.com">email@example.com</a></p>
+        <p>Consulta il codice sorgente su <a href="https://github.com/" target="_blank">GitHub</a></p>
+    </footer>
+</body>
+</html>
